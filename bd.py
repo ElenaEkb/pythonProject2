@@ -1,0 +1,89 @@
+import sqlalchemy
+import psycopg2
+
+conn = psycopg2.connect(
+    host='localhost',  # 127.0.0.1
+    user='postgres',  # postgres
+    password='Ghfdlf1407$',  # postgres
+    database='diplom'
+    )
+
+
+def create_table_found_person():
+    """create table found_person"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS found_person(
+                id serial,
+                id_vk varchar(20) NOT NULL PRIMARY KEY);"""
+        )
+
+
+def create_table_seen_person():  # references users(id_vk)
+    """create table seen_person"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS seen_person(
+            id serial,
+            id_vk varchar(50) PRIMARY KEY);"""
+        )
+
+
+def insert_found_person(id_vk):
+    """insert info from looking_for_persons into table found_person"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""INSERT INTO found_person (id_vk) 
+            VALUES (%s)""",
+            (id_vk,)
+        )
+
+
+def insert_data_seen_person(id_vk, offset):
+    """inserting data into the seen_users table"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""INSERT INTO seen_person (id_vk) 
+            VALUES ('{id_vk}')
+            OFFSET '{offset}';"""
+        )
+
+
+def select(offset):
+    """select of unreviewed people"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"""SELECT 
+            fp.id_vk, 
+            sp.id_vk
+            FROM found_person AS fp
+            LEFT JOIN seen_person AS sp 
+            ON fp.id_vk = sp.id_vk
+            WHERE sp.id_vk IS NULL
+            OFFSET '{offset}';"""
+        )
+        return cursor.fetchone()
+
+
+def delete_table_found_person():
+    """delete table found_person by cascade"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """DROP TABLE IF EXISTS found_person CASCADE;"""
+        )
+
+
+def delete_table_seen_person():
+    """delete table seen_person by cascade"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """DROP TABLE  IF EXISTS seen_person CASCADE;"""
+        )
+
+
+def creating_database():
+    delete_table_found_person()
+    delete_table_seen_person()
+    create_table_found_person()
+    create_table_seen_person()
+    print("Database was created!")
