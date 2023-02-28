@@ -6,20 +6,28 @@ from random import randrange
 from bd import *
 import psycopg2
 from psycopg2 import errors
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 
 offset = 0
 
 
+def get_button(text, color):
+    return {
+        "action": {
+            "type": "text",
+            "payload": "{\"button\": \"" + "1" + "\"}",
+            "label": f"{text}"
+        },
+        "color": f"{color}"
+    }
 class Bot:
     def __init__(self):
         print('Bot was created')
-        self.vk_user = vk_api.VkApi(
-            token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
+        self.vk_user = vk_api.VkApi(token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
         self.vk_user_got_api = self.vk_user.get_api()  # # переменную сессии vk_user подключаем к api списку методов.
         self.vk_group = vk_api.VkApi(token=group_token)  # Создаем переменную сесии, авторизованную токеном сообщества.
         self.vk_group_got_api = self.vk_group.get_api()  # переменную сессии vk_group подключаем к api списку методов.
-        self.longpoll = VkLongPoll(
-            self.vk_group)  # переменную сессии vk_group_got_api подключаем к Long Poll API,
+        self.longpoll = VkLongPoll(self.vk_group)  # переменную сессии vk_group_got_api подключаем к Long Poll API,
         # позволяет работать с событиями из вашего сообщества в реальном времени.
 
     def send_msg(self, user_id, message):
@@ -27,13 +35,13 @@ class Bot:
         self.vk_group_got_api.messages.send(
             user_id=user_id,
             message=message,
-            random_id=randrange(10 ** 7)
+            random_id=randrange(10 ** 7),
+            keydoard=keyboard
         )
 
     def name(self, user_id):
-        """getting the name of the user who written to the bot"""
+        """получение имени пользователя, который написал боту"""
         user_info = self.vk_group_got_api.users.get(user_id=user_id)
-        # print(user_info)
         try:
             name = user_info[0]['first_name']
             return name
@@ -42,7 +50,7 @@ class Bot:
 
 
     def naming_of_years(self, years, till=True):
-        """addition to years"""
+        """дополнение к годам"""
         if till is True:
             name_years = [1, 21, 31, 41, 51, 61, 71, 81, 91, 101]
             if years in name_years:
@@ -61,6 +69,8 @@ class Bot:
     def input_looking_age(self, user_id, age):
         global age_from, age_to
         a = age.split("-")
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         try:
             age_from = int(a[0])
             age_to = int(a[1])
@@ -120,8 +130,10 @@ class Bot:
             return f'День рождения {int(bdate_splited[0])} {month}.'
 
     def get_age_of_user(self, user_id):
-        """determine the user's age"""
+        """Определвет возраст пользователя"""
         global age_from, age_to
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         try:
             info = self.vk_user_got_api.users.get(
                 user_ids=user_id,
@@ -133,8 +145,8 @@ class Bot:
             if num_age == "День":
                 print(f'Ваш {self.get_years_of_person(info)}')
                 self.send_msg(user_id,
-                              f'   Бот ищет людей вашего возраста, но в ваших настройках профиля установлен пункт "Показывать только месяц и день рождения"! \n'
-                              f'   Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).'
+                              f' Бот ищет людей вашего возраста, но в ваших настройках профиля установлен пункт "Показывать только месяц и день рождения"! '
+                              f'\n Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).'
                               )
                 for event in self.longpoll.listen():
                     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -145,7 +157,7 @@ class Bot:
             print(f'День рождения скрыт настройками приватности!')
             self.send_msg(user_id,
                           f' Бот ищет людей вашего возраста, но в ваших в настройках профиля установлен пункт "Не показывать дату рождения". '
-                          f'\n Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).'
+                          f'\n Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год)'
                           )
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -153,8 +165,10 @@ class Bot:
                     return self.input_looking_age(user_id, age)
 
     def get_target_city(self, user_id):
-        """define city to search"""
+        """определяет город для пользователя"""
         global city_id, city_title
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         self.send_msg(user_id,
                       f' Введите "Да" - поиск будет произведен в городе указанный в профиле.'
                       f' Или введите название города, например: Москва'
@@ -184,7 +198,7 @@ class Bot:
                             return f' в городе {city_title}'
 
     def looking_for_gender(self, user_id):
-        """looking for the opposite gender to the user"""
+        """ПОЛУЧЕНИЕ ПОЛА ПОЛЬЗОВАТЕЛЯ, МЕНЯЕТ НА ПРОТИВОПОЛОЖНЫЙ"""
         info = self.vk_user_got_api.users.get(
             user_id=user_id,
             fields="sex"
@@ -199,8 +213,8 @@ class Bot:
             print("ERROR!!!")
 
     def looking_for_persons(self, user_id):
-        """ search for a person based on the data received """
-        res = self.vk_user_got_api.users.search(  # group_token is unavailable for this method users.search.
+        """ ПОИСК АНКЕТЫ НА ОСНОВЕ ПОЛУЧЕННЫХ ДАННЫХ """
+        res = self.vk_user_got_api.users.search(  # group_token недоступен для этого метода users.search.
             sort=0,  # 1 — по дате регистрации, 0 — по популярности.
             city=city_id,
             hometown=city_title,
@@ -229,7 +243,7 @@ class Bot:
         return
 
     def photo_of_found_person(self, user_id):
-        """getting a photo of a found person"""
+        """ПОЛУЧЕНИЕ ФОТОГРАФИЙ ПОЛЬЗОВАТЕЛЯ"""
         global attachments
         res = self.vk_user_got_api.photos.get(
             owner_id=user_id,
@@ -265,7 +279,7 @@ class Bot:
 
 
     def found_person_info(self, show_person_id):
-        """information about the found person"""
+        """ИНФОРМАЦИЯ ИЗ АНКЕТЫ НАЙДЕННОЙ """
         res = self.vk_user_got_api.users.get(
             user_ids=show_person_id,
             fields="about, "  # Содержимое поля «О себе» из профиля.
@@ -299,7 +313,7 @@ class Bot:
         return f'{first_name} {last_name}, {age}, {city}. {vk_link}'
 
     def send_photo(self, user_id, message, attachments):
-        """method for sending photos"""
+        """МЕТОД ОТПРАВКИ СООБЩЕНИЙ"""
         self.vk_group_got_api.messages.send(
             user_id=user_id,
             message=message,
@@ -309,14 +323,19 @@ class Bot:
 
 
     def show_found_person(self, user_id):
-        """show person from database"""
+        """ПОКАЗЫВАЕТ АНКЕТУ ПОЛЬЗОВАТЕЛЯ"""
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button("Смотреть", color=VkKeyboardColor.PRIMARY)
+        keyboard.add_button('Поиск', VkKeyboardColor.POSITIVE)
         try:
             self.send_msg(user_id, self.found_person_info(select(offset)[0]))
             self.send_photo(user_id, 'Фото с максимальными лайками', self.photo_of_found_person(select(offset)[0]))
             insert_data_seen_person(select(offset)[0], offset)  # offset ( select(offset)[0] = fp.id_vk )
         except TypeError:
             self.send_msg(user_id,
-                          f'Все анекты просмотрены. Будет выполнен новый поиск. Измените критерии поиска (возраст, город). Введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).  ')
+                          f'Все анекты просмотрены. Будет выполнен новый поиск.\n'
+                          f'Измените критерии поиска (возраст, город). Введите возраст поиска, на пример от 21 года и до 35 лет,\n'
+                          f'в формате : 21-35 (или 21 конкретный возраст 21 год).  ')
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                     age = event.text

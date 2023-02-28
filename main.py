@@ -1,13 +1,18 @@
+import vk_api
 from bd import *
 from bot import *
 from config import *
 from vk_api.longpoll import VkEventType, VkLongPoll
+from keyboard import sender
+
 
 creating_database()
 for event in bot.longpoll.listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
         request = event.text.lower()
-        user_id = event.user_id
+        user_id = str(event.user_id)
+        msg = event.text.lower()
+        bot.sender(user_id, msg.lower())
         if request == 'поиск':
             bot.get_age_of_user(user_id)
             bot.get_target_city(user_id)
