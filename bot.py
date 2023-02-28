@@ -3,7 +3,6 @@ import datetime
 import vk_api
 from config import user_token, group_token
 from random import randrange
-from pprint import pprint
 from bd import *
 import psycopg2
 from psycopg2 import errors
