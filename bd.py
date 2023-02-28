@@ -1,10 +1,9 @@
-import sqlalchemy
 import psycopg2
 
 conn = psycopg2.connect(
-    host='localhost',  # 127.0.0.1
-    user='postgres',  # postgres
-    password='Ghfdlf1407$',  # postgres
+    host='localhost',
+    user='postgres',
+    password='Ghfdlf1407$',
     database='diplom'
     )
 
