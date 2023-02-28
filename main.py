@@ -3,7 +3,7 @@ from bot import *
 from config import *
 from vk_api.longpoll import VkEventType, VkLongPoll
 
-creating_database()  # создает новую БД.
+creating_database()
 for event in bot.longpoll.listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
         request = event.text.lower()
