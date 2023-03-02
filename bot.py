@@ -17,29 +17,14 @@ class Bot:
         self.longpoll = VkLongPoll(self.vk_group)  # переменную сессии vk_group_got_api подключаем к Long Poll API,
         # позволяет работать с событиями из вашего сообщества в реальном времени.
 
-    def send_msg(self, user_id, message, keyboard=None):
-        """Метод отправки сообщений"""
-        post = {
-            'user_id': user_id,
-            'message': message,
-            'random_id': randrange(10 ** 7),
-            }
-        if keyboard != None:
-            post['keyboard'] = keyboard.get_keyboard()
-        else:
-            post = post
-        self.vk_group_got_api('messages.send', post)
-#        self.vk_group_got_api.messages.send(
-#            user_id=user_id,
-#           message=message,
-#           random_id=randrange(10 ** 7),
-#       )
-
-#    def write_msg(self, user_id, message, keyboard):
-        """Метод отправки сообщения с клавиатурой"""
-
-
-
+    def send_msg(self, user_id, message, keyboard):
+        """method for sending messages"""
+        self.vk_group_got_api.messages.send(
+            user_id=user_id,
+            message=message,
+            keyboard=keyboard.get_keyboard() if keyboard is not None else None,
+            random_id=randrange(10 ** 7)
+        )
 
 
     def name(self, user_id):
@@ -143,10 +128,6 @@ class Bot:
             age_to = num_age
             if num_age == "День":
                 print(f'Ваш {self.get_years_of_person(info)}')
-                self.send_msg(user_id,
-                              f' Бот ищет людей вашего возраста, но в ваших настройках профиля установлен пункт "Показывать только месяц и день рождения"! '
-                              f'\n Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).'
-                              )
                 for event in self.longpoll.listen():
                     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                         age = event.text
@@ -154,10 +135,6 @@ class Bot:
             return print(f' Ищем вашего возраста {self.naming_of_years(age_to)}')
         except KeyError:
             print(f'День рождения скрыт настройками приватности!')
-            self.send_msg(user_id,
-                          f' Бот ищет людей вашего возраста, но в ваших в настройках профиля установлен пункт "Не показывать дату рождения". '
-                          f'\n Поэтому, введите возраст поиска, на пример от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год)'
-                          )
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                     age = event.text
