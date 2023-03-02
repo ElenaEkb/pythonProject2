@@ -1,33 +1,29 @@
-from main import bot
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import json
 
+keyboard = VkKeyboard(one_time=False, inline=False)
+keyboard.add_button("нажмите, чтобы узнать на что я способен \N{smiling face with sunglasses}", VkKeyboardColor.PRIMARY)
+keyboard.add_button("начать автоматический поиск", VkKeyboardColor.POSITIVE)
+keyboard.add_button("начать поиск по индивидуальным предпочтениям", VkKeyboardColor.POSITIVE)
+keyboard = keyboard.get_keyboard()
 
-def get_button(text, color):
-    return {
-        "action": {
-            "type": "text",
-            "payload": "{\"button\": \"" + "1" + "\"}",
-            "label": f"{text}"
-        },
-        "color": f"{color}"
-    }
+keyboard1 = VkKeyboard(one_time=False, inline=True)
+keyboard1.add_button(
+    label="смотреть",
+    color=VkKeyboardColor.SECONDARY,
+    payload={"type": "text", "text": "смотреть"},
+)
 
+keyboard2 = VkKeyboard(one_time=False, inline=True)
+keyboard2.add_button(
+    label="Закончить просмотр",
+    color=VkKeyboardColor.SECONDARY,
+    payload={"type": "text", "text": "Закончить просмотр"})
 
-keyboard = {
-    "one_time": False,
-    "buttons": [
-        [get_button('Начать поиск', 'primary')],
-        [get_button('Вперёд', 'secondary')]
-    ]
-}
+keyboard3 = VkKeyboard(one_time=False, inline=True)
+keyboard3.add_button(
+    label="Удалить",
+    color=VkKeyboardColor.SECONDARY,
+    payload={"type": "text", "text": "Удалить"})
 
-
-def sender(user_id, text):
-    bot.vk.method('messages.send', {'user_id': user_id,
-                                    'message': text,
-                                    'random_id': 0,
-                                    'keyboard': keyboard})
-
-
-keyboard = json.dumps(keyboard, ensure_ascii=False).encode('utf-8')
-keyboard = str(keyboard.decode('utf-8'))
+keyboard = json.dumps(keyboard, ensure_ascii=False)

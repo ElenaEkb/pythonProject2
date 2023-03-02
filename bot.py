@@ -4,40 +4,35 @@ import vk_api
 from config import user_token, group_token
 from random import randrange
 from bd import *
-import psycopg2
-from psycopg2 import errors
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor
-
-offset = 0
+from keyboard import *
 
 
-def get_button(text, color):
-    return {
-        "action": {
-            "type": "text",
-            "payload": "{\"button\": \"" + "1" + "\"}",
-            "label": f"{text}"
-        },
-        "color": f"{color}"
-    }
 class Bot:
     def __init__(self):
-        print('Bot was created')
+        print('Бот запущен')
         self.vk_user = vk_api.VkApi(token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
         self.vk_user_got_api = self.vk_user.get_api()  # # переменную сессии vk_user подключаем к api списку методов.
-        self.vk_group = vk_api.VkApi(token=group_token)  # Создаем переменную сесии, авторизованную токеном сообщества.
+        self.vk_group = vk_api.VkApi(token=group_token)  # Создаем переменную сессии, авторизованную токеном сообщества.
         self.vk_group_got_api = self.vk_group.get_api()  # переменную сессии vk_group подключаем к api списку методов.
         self.longpoll = VkLongPoll(self.vk_group)  # переменную сессии vk_group_got_api подключаем к Long Poll API,
         # позволяет работать с событиями из вашего сообщества в реальном времени.
 
     def send_msg(self, user_id, message):
-        """method for sending messages"""
+        """Метод отправки сообщений"""
         self.vk_group_got_api.messages.send(
             user_id=user_id,
             message=message,
             random_id=randrange(10 ** 7),
-            keydoard=keyboard
         )
+
+    def write_msg(self, user_id, message, keyboard=None, attachment=None):
+        """Метод отправки сообщения с клавиатурой"""
+        self.vk_group_got_api('messages.send', {'user_id': user_id,
+                                         'message': message,
+                                         'random_id': randrange(10 ** 7),
+                                         'attachment': attachment,
+                                         'keyboard': keyboard})
+
 
     def name(self, user_id):
         """получение имени пользователя, который написал боту"""
@@ -69,8 +64,6 @@ class Bot:
     def input_looking_age(self, user_id, age):
         global age_from, age_to
         a = age.split("-")
-        keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         try:
             age_from = int(a[0])
             age_to = int(a[1])
@@ -130,10 +123,8 @@ class Bot:
             return f'День рождения {int(bdate_splited[0])} {month}.'
 
     def get_age_of_user(self, user_id):
-        """Определвет возраст пользователя"""
+        """Определяет возраст пользователя"""
         global age_from, age_to
-        keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         try:
             info = self.vk_user_got_api.users.get(
                 user_ids=user_id,
@@ -167,8 +158,6 @@ class Bot:
     def get_target_city(self, user_id):
         """определяет город для пользователя"""
         global city_id, city_title
-        keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button("Завершить", color=VkKeyboardColor.NEGATIVE)
         self.send_msg(user_id,
                       f' Введите "Да" - поиск будет произведен в городе указанный в профиле.'
                       f' Или введите название города, например: Москва'
@@ -214,6 +203,8 @@ class Bot:
 
     def looking_for_persons(self, user_id):
         """ ПОИСК АНКЕТЫ НА ОСНОВЕ ПОЛУЧЕННЫХ ДАННЫХ """
+        global list_found_persons
+        list_found_persons = []
         res = self.vk_user_got_api.users.search(  # group_token недоступен для этого метода users.search.
             sort=0,  # 1 — по дате регистрации, 0 — по популярности.
             city=city_id,
@@ -233,12 +224,9 @@ class Bot:
         for person in res["items"]:
             if not person["is_closed"]:
                 if "city" in person and person["city"]["id"] == city_id and person["city"]["title"] == city_title:
-                    try:
-                        number += 1
-                        id_vk = person["id"]
-                        insert_found_person(id_vk)  # вставка в БД.
-                    except psycopg2.errors.UniqueViolation:  # Если найденный id_vk уже есть в БД, то он пропускается.
-                        pass
+                    number += 1
+                    id_vk = person["id"]
+                    list_found_persons.append(id_vk)
         print(f'Bot found {number} opened profiles for viewing from {res["count"]}')
         return
 
@@ -277,6 +265,23 @@ class Bot:
             except IndexError:
                 return print(f'Нет фото')
 
+    def show_person_id(self):
+        global unique_person_id
+        seen_person = []
+        for i in check():
+            seen_person.append(int(i[0]))
+        if not seen_person:
+            for ifp in list_found_persons:
+                unique_person_id = ifp
+                return unique_person_id
+        else:
+            for ifp in list_found_persons:
+                if ifp in seen_person:
+                    pass
+                else:
+                    unique_person_id = ifp
+                    return unique_person_id
+
 
     def found_person_info(self, show_person_id):
         """ИНФОРМАЦИЯ ИЗ АНКЕТЫ НАЙДЕННОЙ """
@@ -314,27 +319,25 @@ class Bot:
 
     def send_photo(self, user_id, message, attachments):
         """МЕТОД ОТПРАВКИ СООБЩЕНИЙ"""
-        self.vk_group_got_api.messages.send(
-            user_id=user_id,
-            message=message,
-            random_id=randrange(10 ** 7),
-            attachment=",".join(attachments)
-        )
+        try:
+            self.vk_group_got_api.messages.send(
+                user_id=user_id,
+                message=message,
+                random_id=randrange(10 ** 7),
+                attachment=",".join(attachments)
+            )
+        except TypeError:
+            pass
 
 
     def show_found_person(self, user_id):
         """ПОКАЗЫВАЕТ АНКЕТУ ПОЛЬЗОВАТЕЛЯ"""
-        keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button("Смотреть", color=VkKeyboardColor.PRIMARY)
-        keyboard.add_button('Поиск', VkKeyboardColor.POSITIVE)
-        try:
-            self.send_msg(user_id, self.found_person_info(select(offset)[0]))
-            self.send_photo(user_id, 'Фото с максимальными лайками', self.photo_of_found_person(select(offset)[0]))
-            insert_data_seen_person(select(offset)[0], offset)  # offset ( select(offset)[0] = fp.id_vk )
-        except TypeError:
+        print(self.show_person_id())
+        if self.show_person_id() == None:
             self.send_msg(user_id,
-                          f'Все анекты просмотрены. Будет выполнен новый поиск.\n'
-                          f'Измените критерии поиска (возраст, город). Введите возраст поиска, на пример от 21 года и до 35 лет,\n'
+                          f'Все анекты просмотрены. Будет выполнен новый поиск. '
+                          f'Измените критерии поиска (возраст, город). '
+                          f'Введите возраст поиска, на пример от 21 года и до 35 лет, '
                           f'в формате : 21-35 (или 21 конкретный возраст 21 год).  ')
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -342,8 +345,11 @@ class Bot:
                     self.input_looking_age(user_id, age)
                     self.get_target_city(user_id)
                     self.looking_for_persons(user_id)
-                    self.send_msg(user_id, f'  Сейчас наберите "Смотреть" ')
+                    self.show_found_person(user_id)
                     return
+        self.send_msg(user_id, self.found_person_info(self.show_person_id()))
+        self.send_photo(user_id, 'Фото с максимальными лайками', self.photo_of_found_person(self.show_person_id()))
+        insert_data_seen_person(self.show_person_id())
 
 
 bot = Bot()
