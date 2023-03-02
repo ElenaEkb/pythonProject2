@@ -4,7 +4,7 @@ import vk_api
 from config import user_token, group_token
 from random import randrange
 from bd import *
-from keyboard import *
+
 
 
 class Bot:
@@ -17,21 +17,29 @@ class Bot:
         self.longpoll = VkLongPoll(self.vk_group)  # переменную сессии vk_group_got_api подключаем к Long Poll API,
         # позволяет работать с событиями из вашего сообщества в реальном времени.
 
-    def send_msg(self, user_id, message):
+    def send_msg(self, user_id, message, keyboard=None):
         """Метод отправки сообщений"""
-        self.vk_group_got_api.messages.send(
-            user_id=user_id,
-            message=message,
-            random_id=randrange(10 ** 7),
-        )
+        post = {
+            'user_id': user_id,
+            'message': message,
+            'random_id': randrange(10 ** 7),
+            }
+        if keyboard != None:
+            post['keyboard'] = keyboard.get_keyboard()
+        else:
+            post = post
+        self.vk_group_got_api('messages.send', post)
+#        self.vk_group_got_api.messages.send(
+#            user_id=user_id,
+#           message=message,
+#           random_id=randrange(10 ** 7),
+#       )
 
-    def write_msg(self, user_id, message, keyboard=None, attachment=None):
+#    def write_msg(self, user_id, message, keyboard):
         """Метод отправки сообщения с клавиатурой"""
-        self.vk_group_got_api('messages.send', {'user_id': user_id,
-                                         'message': message,
-                                         'random_id': randrange(10 ** 7),
-                                         'attachment': attachment,
-                                         'keyboard': keyboard})
+
+
+
 
 
     def name(self, user_id):
