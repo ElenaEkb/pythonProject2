@@ -9,7 +9,7 @@ conn = psycopg2.connect(
 
 
 def create_table_seen_person():
-    """create table found_person"""
+    """создает  БД"""
     with conn.cursor() as cursor:
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS seen_person(
@@ -17,7 +17,7 @@ def create_table_seen_person():
                 id_vk varchar(50) PRIMARY KEY);"""
         )
 def insert_data_seen_person(id_vk):
-    """inserting data into the seen_users table"""
+    """вставка данных в таблицуe"""
     with conn.cursor() as cursor:
         cursor.execute(
             f"""INSERT INTO seen_person (id_vk) 
@@ -34,16 +34,16 @@ def check():
 
 
 def delete_table_seen_person():
-    """delete table seen_person by cascade"""
+    """удаляет БД"""
     with conn.cursor() as cursor:
         cursor.execute(
             """DROP TABLE  IF EXISTS seen_person CASCADE;"""
         )
 
 
-def creating_database():
-    delete_table_seen_person()
-    create_table_seen_person()
-    print("База данных создана!")
 
-creating_database()
+
+create_table_seen_person()
+print("База данных создана!")
+
+

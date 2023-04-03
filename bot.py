@@ -18,7 +18,7 @@ class Bot:
         # позволяет работать с событиями из вашего сообщества в реальном времени.
 
     def send_msg(self, user_id, message, keyboard):
-        """method for sending messages"""
+        """МЕТОД ОТПРАВКИ СООБЩЕНИЙ"""
         self.vk_group_got_api.messages.send(
             user_id=user_id,
             message=message,
@@ -28,17 +28,17 @@ class Bot:
 
 
     def name(self, user_id):
-        """получение имени пользователя, который написал боту"""
+        """ПОЛУЧЕНИЕ ИМЕНИ ПОЛЬЗОВАТЕЛЯ, КОТОРЫЙ НАПИСАЛ БОТУ"""
         user_info = self.vk_group_got_api.users.get(user_id=user_id)
         try:
             name = user_info[0]['first_name']
             return name
         except KeyError:
-            self.send_msg(user_id, "Ошибка")
+            self.send_msg(user_id, "Ошибка", keyboard=None)
 
 
     def naming_of_years(self, years, till=True):
-        """дополнение к годам"""
+        """ДОПОЛНЕНИЕ К ГОДАМ"""
         if till is True:
             name_years = [1, 21, 31, 41, 51, 61, 71, 81, 91, 101]
             if years in name_years:
@@ -61,24 +61,24 @@ class Bot:
             age_from = int(a[0])
             age_to = int(a[1])
             if age_from == age_to:
-                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}')
+                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}', keyboard=None)
                 return
-            self.send_msg(user_id, f' Ищем возраст в пределах от {age_from} и до {self.naming_of_years(age_to, True)}')
+            self.send_msg(user_id, f' Ищем возраст в пределах от {age_from} и до {self.naming_of_years(age_to, True)}', keyboard=None)
             return
         except IndexError:
             age_to = int(age)
-            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}')
+            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}',keyboard=None)
             return
         except NameError:
-            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!')
+            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!', keyboard=None)
             return
         except ValueError:
-            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!')
+            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!', keyboard=None)
             return
 
 
     def get_years_of_person(self, bdate: str) -> object:
-        """determining the number of years"""
+        """ОПРЕДЕЛЯЕМ КОЛИЧЕСТВО ЛЕТ"""
         bdate_splited = bdate.split(".")
         month = ""
         try:
@@ -116,7 +116,7 @@ class Bot:
             return f'День рождения {int(bdate_splited[0])} {month}.'
 
     def get_age_of_user(self, user_id):
-        """Определяет возраст пользователя"""
+        """ОПРЕДЕЛЯЕМ ВОЗРАСТ ПОЛЬЗОВАТЕЛЯ"""
         global age_from, age_to
         try:
             info = self.vk_user_got_api.users.get(
@@ -128,6 +128,10 @@ class Bot:
             age_to = num_age
             if num_age == "День":
                 print(f'Ваш {self.get_years_of_person(info)}')
+                self.send_msg(user_id,
+                              f' Бот ищет людей вашего возраста, но в ваших настройках профиля установлен пункт "Показывать только месяц и день рождения"! \n'
+                              f' Поэтому, введите возраст для поиска, например от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).'
+                              , keyboard=None)
                 for event in self.longpoll.listen():
                     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                         age = event.text
@@ -135,17 +139,21 @@ class Bot:
             return print(f' Ищем вашего возраста {self.naming_of_years(age_to)}')
         except KeyError:
             print(f'День рождения скрыт настройками приватности!')
+            self.send_msg(user_id,
+                          f' Бот ищет людей вашего возраста, но в ваших в настройках профиля установлен пункт "Не показывать дату рождения". '
+                          f'\n Поэтому, введите возраст для поиска, например от 21 года и до 35 лет, в формате : 21-35 (или 21 конкретный возраст 21 год).', keyboard=None
+                          )
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                     age = event.text
                     return self.input_looking_age(user_id, age)
 
     def get_target_city(self, user_id):
-        """определяет город для пользователя"""
+        """ОПРЕДЕЛЯЕТ ГОРОД ДЛЯ ПОЛЬЗОВАТЕЛЯ"""
         global city_id, city_title
         self.send_msg(user_id,
                       f' Введите "Да" - поиск будет произведен в городе указанный в профиле.'
-                      f' Или введите название города, например: Москва'
+                      f' Или введите название города, например: Москва', keyboard=None
                       )
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -212,7 +220,7 @@ class Bot:
                     number += 1
                     id_vk = person["id"]
                     list_found_persons.append(id_vk)
-        print(f'Bot found {number} opened profiles for viewing from {res["count"]}')
+        print(f'Бот нашел  {number} открытых профилей для просмотра из {res["count"]}')
         return
 
     def photo_of_found_person(self, user_id):
@@ -250,22 +258,29 @@ class Bot:
             except IndexError:
                 return print(f'Нет фото')
 
-    def show_person_id(self):
-        global unique_person_id
+    def get_found_person_id(self):
+        global unique_person_id, found_persons
         seen_person = []
         for i in check():
             seen_person.append(int(i[0]))
         if not seen_person:
-            for ifp in list_found_persons:
-                unique_person_id = ifp
+            try:
+                unique_person_id = list_found_persons[0]
                 return unique_person_id
+            except NameError:
+                found_persons = 0
+                return found_persons
         else:
-            for ifp in list_found_persons:
-                if ifp in seen_person:
-                    pass
-                else:
-                    unique_person_id = ifp
-                    return unique_person_id
+            try:
+                for ifp in list_found_persons:
+                    if ifp in seen_person:
+                        pass
+                    else:
+                        unique_person_id = ifp
+                        return unique_person_id
+            except NameError:
+                found_persons = 0
+                return found_persons
 
 
     def found_person_info(self, show_person_id):
@@ -303,7 +318,7 @@ class Bot:
         return f'{first_name} {last_name}, {age}, {city}. {vk_link}'
 
     def send_photo(self, user_id, message, attachments):
-        """МЕТОД ОТПРАВКИ СООБЩЕНИЙ"""
+        """МЕТОД ОТПРАВКИ СООБЩЕНИЙ С ФОТО"""
         try:
             self.vk_group_got_api.messages.send(
                 user_id=user_id,
@@ -317,13 +332,13 @@ class Bot:
 
     def show_found_person(self, user_id):
         """ПОКАЗЫВАЕТ АНКЕТУ ПОЛЬЗОВАТЕЛЯ"""
-        print(self.show_person_id())
-        if self.show_person_id() == None:
+        print(self.get_found_person_id())
+        if self.get_found_person_id() == None:
             self.send_msg(user_id,
                           f'Все анекты просмотрены. Будет выполнен новый поиск. '
                           f'Измените критерии поиска (возраст, город). '
-                          f'Введите возраст поиска, на пример от 21 года и до 35 лет, '
-                          f'в формате : 21-35 (или 21 конкретный возраст 21 год).  ')
+                          f'Введите возраст для поиска, например от 21 года и до 35 лет, '
+                          f'в формате : 21-35 (или 21 конкретный возраст 21 год).  ', keyboard=None)
             for event in self.longpoll.listen():
                 if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                     age = event.text
@@ -332,9 +347,11 @@ class Bot:
                     self.looking_for_persons(user_id)
                     self.show_found_person(user_id)
                     return
-        self.send_msg(user_id, self.found_person_info(self.show_person_id()))
-        self.send_photo(user_id, 'Фото с максимальными лайками', self.photo_of_found_person(self.show_person_id()))
-        insert_data_seen_person(self.show_person_id())
+        else:
+            self.send_msg(user_id, self.found_person_info(self.get_found_person_id()), keyboard=None)
+            self.send_photo(user_id, 'Фото с максимальными лайками',
+                            self.photo_of_found_person(self.get_found_person_id()))
+            insert_data_seen_person(self.get_found_person_id())
 
 
 bot = Bot()
