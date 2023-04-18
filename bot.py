@@ -8,6 +8,8 @@ from bd import *
 
 
 class Bot:
+    age_from = 0
+    age_to = 0
     def __init__(self):
         print('Бот запущен')
         self.vk_user = vk_api.VkApi(token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
@@ -55,19 +57,18 @@ class Bot:
                 return f'{years} лет'
 
     def input_looking_age(self, user_id, age):
-        global age_from, age_to
         a = age.split("-")
         try:
-            age_from = int(a[0])
-            age_to = int(a[1])
-            if age_from == age_to:
-                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}', keyboard=None)
+            self.age_from = int(a[0])
+            self.age_to = int(a[1])
+            if self.age_from == self.age_to:
+                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}', keyboard=None)
                 return
-            self.send_msg(user_id, f' Ищем возраст в пределах от {age_from} и до {self.naming_of_years(age_to, True)}', keyboard=None)
+            self.send_msg(user_id, f' Ищем возраст в пределах от {self.age_from} и до {self.naming_of_years(self.age_to, True)}', keyboard=None)
             return
         except IndexError:
-            age_to = int(age)
-            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(age_to, False)}',keyboard=None)
+            self.age_to = int(age)
+            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}',keyboard=None)
             return
         except NameError:
             self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!', keyboard=None)
@@ -117,15 +118,14 @@ class Bot:
 
     def get_age_of_user(self, user_id):
         """ОПРЕДЕЛЯЕМ ВОЗРАСТ ПОЛЬЗОВАТЕЛЯ"""
-        global age_from, age_to
         try:
             info = self.vk_user_got_api.users.get(
                 user_ids=user_id,
                 fields="bdate",
             )[0]['bdate']
             num_age = self.get_years_of_person(info).split()[0]
-            age_from = num_age
-            age_to = num_age
+            self.age_from = num_age
+            self.age_to = num_age
             if num_age == "День":
                 print(f'Ваш {self.get_years_of_person(info)}')
                 self.send_msg(user_id,
@@ -136,7 +136,7 @@ class Bot:
                     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                         age = event.text
                         return self.input_looking_age(user_id, age)
-            return print(f' Ищем вашего возраста {self.naming_of_years(age_to)}')
+            return print(f' Ищем вашего возраста {self.naming_of_years(self.age_to)}')
         except KeyError:
             print(f'День рождения скрыт настройками приватности!')
             self.send_msg(user_id,
@@ -204,8 +204,8 @@ class Bot:
             hometown=city_title,
             sex=self.looking_for_gender(user_id),  # 1— женщина, 2 — мужчина, 0 — любой (по умолчанию).
             status=1,  # 1 — не женат или не замужем, 6 — в активном поиске.
-            age_from=age_from,
-            age_to=age_to,
+            age_from=self.age_from,
+            age_to=self.age_to,
             has_photo=1,  # 1 — искать только пользователей с фотографией, 0 — искать по всем пользователям
             count=1000,
             offset=100,
