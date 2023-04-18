@@ -29,11 +29,12 @@ for event in bot.longpoll.listen():
                                   f' "Удалить" - удаляет старую БД и создает новую. \n'
                                   f' "Смотреть" - просмотр следующей записи в БД.', keyboard)
         elif request == 'смотреть':
-            if bot.get_found_person_id() != 0:
-                bot.show_found_person(user_id)
-                bot.send_msg(user_id, f'{bot.name(user_id)} продолжим поиск по заданным параметрам)', keyboard)
-            else:
-                bot.send_msg(user_id, f'{bot.name(user_id)} Необходимо нажать "поиск" или "удалить"', keyboard)
+            if bot.get_found_person_id() == None:
+                bot.looking_persons_offset += 100
+                bot.looking_for_persons(user_id)
+            bot.show_found_person(user_id)
+            bot.send_msg(user_id, f'{bot.name(user_id)} продолжим поиск по заданным параметрам)', keyboard)
+               # bot.send_msg(user_id, f'{bot.name(user_id)} Необходимо нажать "поиск" или "удалить"', keyboard)
         elif request == 'удалить':
             delete_table_seen_person()  # удаляет существующую БД.
             create_table_seen_person()  # создает новую БД.

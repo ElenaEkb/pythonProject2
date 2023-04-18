@@ -10,6 +10,7 @@ from bd import *
 class Bot:
     age_from = 0
     age_to = 0
+    looking_persons_offset = 0
     def __init__(self):
         print('Бот запущен')
         self.vk_user = vk_api.VkApi(token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
@@ -198,7 +199,8 @@ class Bot:
         """ ПОИСК АНКЕТЫ НА ОСНОВЕ ПОЛУЧЕННЫХ ДАННЫХ """
         global list_found_persons
         list_found_persons = []
-        res = self.vk_user_got_api.users.search(  # group_token недоступен для этого метода users.search.
+        try:
+            res = self.vk_user_got_api.users.search(  # group_token недоступен для этого метода users.search.
             sort=0,  # 1 — по дате регистрации, 0 — по популярности.
             city=city_id,
             hometown=city_title,
@@ -207,13 +209,15 @@ class Bot:
             age_from=self.age_from,
             age_to=self.age_to,
             has_photo=1,  # 1 — искать только пользователей с фотографией, 0 — искать по всем пользователям
-            count=1000,
-            offset=100,
+            count=100,
+            offset=self.looking_persons_offset,
             fields="can_write_private_message, "  # Информация о том, может ли текущий пользователь отправить личное сообщение. Возможные значения: 1 — может; 0 — не может.
                    "city, "  # Информация о городе, указанном на странице пользователя в разделе «Контакты».
                    "domain, "  # Короткий адрес страницы.
                    "home_town, "  # Название родного города.
-        )
+            )
+        except:
+            self.send_msg(user_id, f'Повторите попытку, что то пошло не так...')
         number = 0
         for person in res["items"]:
             if not person["is_closed"]:
@@ -221,7 +225,7 @@ class Bot:
                     number += 1
                     id_vk = person["id"]
                     list_found_persons.append(id_vk)
-        print(f'Бот нашел  {number} открытых профилей для просмотра из {res["count"]}')
+        print(f'Бот нашел  {number} открытых профилей для просмотра из {len(res["items"])}/{res["count"]} с офсетом {self.looking_persons_offset}')
         return
 
     def photo_of_found_person(self, user_id):
