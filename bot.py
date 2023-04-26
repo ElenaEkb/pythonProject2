@@ -6,11 +6,11 @@ from random import randrange
 from bd import *
 
 
-
 class Bot:
     age_from = 0
     age_to = 0
     looking_persons_offset = 0
+    list_found_persons = []
     def __init__(self):
         print('Бот запущен')
         self.vk_user = vk_api.VkApi(token=user_token)  # Создаем переменную сессии, авторизованную личным токеном пользователя.
@@ -29,15 +29,15 @@ class Bot:
             random_id=randrange(10 ** 7)
         )
 
-
     def name(self, user_id):
         """ПОЛУЧЕНИЕ ИМЕНИ ПОЛЬЗОВАТЕЛЯ, КОТОРЫЙ НАПИСАЛ БОТУ"""
         user_info = self.vk_group_got_api.users.get(user_id=user_id)
-        try:
+        if user_info:
             name = user_info[0]['first_name']
             return name
-        except KeyError:
-            self.send_msg(user_id, "Ошибка", keyboard=None)
+        else:
+            self.send_msg(user_id, "Произошла ошибка, не удалось получить имя пользователя.", keyboard=None)
+            return None
 
 
     def naming_of_years(self, years, till=True):
@@ -63,20 +63,17 @@ class Bot:
             self.age_from = int(a[0])
             self.age_to = int(a[1])
             if self.age_from == self.age_to:
-                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}', keyboard=None)
+                self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}', keyboard = None)
                 return
-            self.send_msg(user_id, f' Ищем возраст в пределах от {self.age_from} и до {self.naming_of_years(self.age_to, True)}', keyboard=None)
+            self.send_msg(user_id, f' Ищем возраст в пределах от {self.age_from} и до {self.naming_of_years(self.age_to, True)}', keyboard = None)
             return
         except IndexError:
             self.age_to = int(age)
-            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}',keyboard=None)
-            return
-        except NameError:
-            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!', keyboard=None)
+            self.send_msg(user_id, f' Ищем возраст {self.naming_of_years(self.age_to, False)}', keyboard = None)
             return
         except ValueError:
-            self.send_msg(user_id, f' Введен не правильный числовой формат! Game over!', keyboard=None)
-            return
+            self.send_msg(user_id, f' Введен не правильный числовой формат!', keyboard = None)
+        return self.get_age_of_user(user_id)
 
 
     def get_years_of_person(self, bdate: str) -> object:
@@ -153,9 +150,9 @@ class Bot:
         """ОПРЕДЕЛЯЕТ ГОРОД ДЛЯ ПОЛЬЗОВАТЕЛЯ"""
         global city_id, city_title
         self.send_msg(user_id,
-                      f' Введите "Да" - поиск будет произведен в городе указанный в профиле.'
-                      f' Или введите название города, например: Москва', keyboard=None
-                      )
+                f' Введите "Да" - поиск будет произведен в городе указанный в профиле.'
+                f' Или введите название города, например: Москва', keyboard=None
+                    )
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 answer = event.text.lower()
@@ -197,8 +194,6 @@ class Bot:
 
     def looking_for_persons(self, user_id):
         """ ПОИСК АНКЕТЫ НА ОСНОВЕ ПОЛУЧЕННЫХ ДАННЫХ """
-        global list_found_persons
-        list_found_persons = []
         try:
             res = self.vk_user_got_api.users.search(  # group_token недоступен для этого метода users.search.
             sort=0,  # 1 — по дате регистрации, 0 — по популярности.
@@ -224,13 +219,12 @@ class Bot:
                 if "city" in person and person["city"]["id"] == city_id and person["city"]["title"] == city_title:
                     number += 1
                     id_vk = person["id"]
-                    list_found_persons.append(id_vk)
+                    self.list_found_persons.append(id_vk)
         print(f'Бот нашел  {number} открытых профилей для просмотра из {len(res["items"])}/{res["count"]} с офсетом {self.looking_persons_offset}')
         return
 
     def photo_of_found_person(self, user_id):
         """ПОЛУЧЕНИЕ ФОТОГРАФИЙ ПОЛЬЗОВАТЕЛЯ"""
-        global attachments
         res = self.vk_user_got_api.photos.get(
             owner_id=user_id,
             album_id="profile",  # wall — фотографии со стены, profile — фотографии профиля.
@@ -264,20 +258,19 @@ class Bot:
                 return print(f'Нет фото')
 
     def get_found_person_id(self):
-        global unique_person_id, found_persons
         seen_person = []
         for i in check():
             seen_person.append(int(i[0]))
         if not seen_person:
             try:
-                unique_person_id = list_found_persons[0]
+                unique_person_id = self.list_found_persons[0]
                 return unique_person_id
             except NameError:
                 found_persons = 0
                 return found_persons
         else:
             try:
-                for ifp in list_found_persons:
+                for ifp in self.list_found_persons:
                     if ifp in seen_person:
                         pass
                     else:

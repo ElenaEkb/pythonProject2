@@ -33,6 +33,7 @@ def check():
         return cursor.fetchall()
 
 
+
 def delete_table_seen_person():
     """удаляет БД"""
     with conn.cursor() as cursor:
@@ -45,5 +46,3 @@ def delete_table_seen_person():
 
 create_table_seen_person()
 print("База данных создана!")
-
-
